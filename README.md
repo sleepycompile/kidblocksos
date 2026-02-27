@@ -1,231 +1,386 @@
-# KidBlocksOS
+<div align="center">
 
-> A children's creative tablet OS powered by AI — built on Raspberry Pi and OpenClaw.
+# 🧱 KidBlocksOS
 
-⚠️ **Status: Beta (v0.1.0)** — Proof of concept. Not production-ready.
+**AI-powered creative tablet OS for kids ages 5-10**
+
+*Children describe ideas. The system builds them. In seconds.*
+
+[![Beta](https://img.shields.io/badge/status-beta-orange?style=flat-square)](https://github.com/sleepycompile/kidblocksos)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue?style=flat-square)](LICENSE)
+[![Raspberry Pi](https://img.shields.io/badge/platform-Raspberry%20Pi%205-c51a4a?style=flat-square&logo=raspberrypi&logoColor=white)](https://www.raspberrypi.com/)
+[![OpenClaw](https://img.shields.io/badge/powered%20by-OpenClaw-8B5CF6?style=flat-square)](https://openclaw.ai)
+[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen?style=flat-square)](https://github.com/sleepycompile/kidblocksos/issues)
 
 ---
 
-## What Is This?
+[**Skill**](skill/kidblocks-engine/SKILL.md) · [**Architecture**](docs/architecture.md) · [**Skill Guide**](docs/skill-guide.md) · [**Discussions**](https://github.com/sleepycompile/kidblocksos/discussions)
 
-KidBlocksOS turns a Raspberry Pi 5 with a 7" touchscreen into an AI-powered creative tablet for kids ages 5-10.
+</div>
 
-A child says what they want — *"a penguin game where I jump on ice"* or *"teach me about the solar system"* — and the system builds it. In seconds, they have a working interactive app they can play, modify, and learn from.
+---
 
-No app store. No downloads. Just imagination → creation.
+## What Is KidBlocksOS?
 
-### How It Works
+KidBlocksOS turns a **Raspberry Pi 5** with a 7" touchscreen into an AI-powered creative tablet designed exclusively for children.
+
+A child opens a studio — Games, Stories, Music, Art, Science, or Tinker — and describes what they want to make. The system either matches it to one of **13 built-in templates** (instant, offline) or sends it to the **Imagination Engine** (an OpenClaw AI agent) which generates a complete interactive app from scratch.
+
+The child plays their creation, sees how it works through a visual programming layer, and saves it to their library.
+
+No app store. No ads. No tracking. No internet required for core features.
+
+### The Pipeline
 
 ```
-Kid says "make a maze with a cat"
-         │
+ "make a penguin game          Content Safety         Template Match?
+  where I slide on ice"   ──►  Filter (3 layers)  ──►  Yes ──► Instant build
+         │                                              No  ──► AI Generation
+         │                                                        │
+         ▼                                                        ▼
+┌─────────────────┐                                  ┌──────────────────────┐
+│ 🎤 Voice or ⌨️   │                                  │  Imagination Engine   │
+│ Text Input      │                                  │  (OpenClaw Agent)     │
+└─────────────────┘                                  │  + kidblocks-engine   │
+                                                     │    skill              │
+         ┌───────────────────────────────────────────┘
          ▼
-┌─────────────────────┐
-│  KidBlocksOS Shell   │  Electron kiosk on Raspberry Pi
-│  (touch UI, studios) │  Content filter, templates, voice input
-└─────────┬───────────┘
-          │
-          ▼
-┌─────────────────────┐
-│  Template Engine     │  13 built-in patterns (platformer, maze, piano...)
-│  (instant, offline)  │  Works without internet
-└─────────┬───────────┘
-          │ If template can't handle it...
-          ▼
-┌─────────────────────┐
-│  Imagination Engine  │  OpenClaw agent with kidblocks-engine skill
-│  (AI generation)     │  Generates custom HTML apps from descriptions
-└─────────┬───────────┘
-          │
-          ▼
-┌─────────────────────┐
-│  Sandboxed iframe    │  allow-scripts only — no DOM escape
-│  (safe execution)    │  Kid plays the creation
-└─────────────────────┘
+┌─────────────────────────────────────────┐
+│  Sandboxed iframe (allow-scripts only)  │
+│  Complete HTML5 app — games, music,     │
+│  art tools, science sims, stories       │
+└─────────────────────────────────────────┘
 ```
 
-## What's Open Source Here
+## What's In This Repo
 
-This repo contains:
+This is a **semi-open-source proof of concept**. We're open-sourcing the brain — the AI skill that powers generation — along with complete documentation of how the system works.
 
-- **`skill/kidblocks-engine/SKILL.md`** — The Imagination Engine skill that powers AI generation
-- **`docs/`** — Full documentation on the architecture, how to build your own, and how the pieces fit together
+| What | Open Source? | Location |
+|------|:-----------:|----------|
+| **Imagination Engine Skill** | ✅ | [`skill/kidblocks-engine/SKILL.md`](skill/kidblocks-engine/SKILL.md) |
+| **Architecture Documentation** | ✅ | [`docs/architecture.md`](docs/architecture.md) |
+| **Skill Usage Guide** | ✅ | [`docs/skill-guide.md`](docs/skill-guide.md) |
+| KidBlocksOS Shell (Electron) | ❌ | Proprietary |
+| Pre-built OS Image | ❌ | Proprietary |
+| Template Engine (13 patterns) | ❌ | Proprietary |
 
-This repo does **not** contain:
-- The KidBlocksOS Electron shell
-- The pre-built OS image
-- OpenClaw itself (see [openclaw.ai](https://openclaw.ai))
+### Why This Model?
 
-### Why?
+The skill is the creative intelligence. By open-sourcing it:
 
-The skill is the brain. We're open-sourcing it because:
-1. Anyone with OpenClaw can use it to build kid-safe interactive apps
-2. Educators and parents can inspect exactly what the AI is told to do
-3. The community can improve the patterns, add templates, and tighten safety rules
-4. It demonstrates how an OpenClaw skill can power an entire product
+- **Educators and parents** can inspect exactly what the AI is instructed to do
+- **Developers** can use the skill with OpenClaw or any LLM to generate kid-safe apps
+- **The community** can improve patterns, safety rules, and age adaptation
+- **Transparency** — the content safety rules are readable, auditable, and improvable
 
-The OS shell is a specific hardware integration (Pi + touchscreen + kiosk mode). The skill works anywhere OpenClaw runs.
+The OS shell is a hardware-specific integration. The skill works anywhere.
+
+---
 
 ## The Imagination Engine Skill
 
-The skill at [`skill/kidblocks-engine/SKILL.md`](skill/kidblocks-engine/SKILL.md) teaches an AI agent to:
+The skill at [`skill/kidblocks-engine/SKILL.md`](skill/kidblocks-engine/SKILL.md) teaches an AI agent to generate complete, self-contained HTML5 apps. It covers:
 
-- Generate complete, self-contained HTML5 apps from natural language
-- Follow **6 creative studios**: Games, Stories, Music, Art, Science, Tinker
-- Use **40+ patterns** across those studios (platformer, maze, piano, solar system, etc.)
-- Enforce **content safety** — violence → "help friends", guns → "water balloons"
-- Adapt difficulty by age (5-6, 7-8, 9-10)
-- Target a **7" touchscreen** with big tap targets and no tiny text
-- Generate all audio with **Web Audio API** (no external assets)
-- Output structured JSON with visual programming logic (KidBlocks)
+### 6 Creative Studios — 40+ Patterns
 
-### Using the Skill
+<table>
+<tr>
+<td align="center" width="16%">
 
-#### With OpenClaw (recommended)
+**🎮 Games**
 
-Install the skill into any OpenClaw agent:
+Platformer
+Catcher
+Maze
+Whack-a-mole
+Pong
+Runner
+Memory
+Target
 
-```bash
-# Copy into your OpenClaw workspace
-mkdir -p ~/.openclaw/workspace/skills/kidblocks-engine
-cp skill/kidblocks-engine/SKILL.md ~/.openclaw/workspace/skills/kidblocks-engine/
-```
+</td>
+<td align="center" width="16%">
 
-Then tell your agent:
+**📖 Stories**
 
-> "Read the kidblocks-engine skill. Make me a game where a fox collects gems in a forest."
+Branching narrative
+Mad libs
+Comic strip
+Adventure
 
-The agent reads the skill, follows the patterns, and returns a JSON object with `html` and `logic` fields.
+</td>
+<td align="center" width="16%">
 
-#### With Any LLM
+**🎵 Music**
 
-The skill is a markdown file. You can paste it as a system prompt into any LLM:
+Piano
+Beat maker
+Sequencer
+Sound board
+Theremin
+Music box
 
-```
-System: [contents of SKILL.md]
-User: Make a piano app for a 7 year old
-```
+</td>
+<td align="center" width="16%">
 
-The model will follow the patterns and output structured JSON.
+**🎨 Art**
 
-## Architecture Overview
+Freehand draw
+Stamps
+Color mixer
+Pixel art
+Kaleidoscope
+Fireworks
+Patterns
 
-See [docs/architecture.md](docs/architecture.md) for the full technical breakdown.
+</td>
+<td align="center" width="16%">
 
-### Components
+**🔬 Science**
 
-| Component | Description | Location |
-|-----------|-------------|----------|
-| **KidBlocksOS Shell** | Electron kiosk app with studios, wizard, settings | Closed source |
-| **Template Engine** | 13 built-in offline templates | Closed source |
-| **Imagination Engine** | OpenClaw agent + kidblocks-engine skill | **This repo (skill)** |
-| **Content Safety** | Client-side filter + AI-level safety rules | Skill is open, filter is closed |
-| **Guardian Channel** | Parental activity monitoring (XMTP planned) | Closed source |
-| **TimeKeeper** | Screen time, break reminders, bedtime enforcement | Closed source |
-| **KidBlocks** | Visual programming layer showing app logic | Closed source |
+Solar system
+Ecosystem
+Weather
+Body explorer
+Chemistry
+Dinosaurs
+Gravity
 
-### System Requirements (for the full OS)
+</td>
+<td align="center" width="16%">
 
-- Raspberry Pi 5 (4GB+ RAM)
-- 7" official touchscreen (1024x600)
-- 32GB+ SD card
-- WiFi for AI features (templates work offline)
-- Anthropic API key (for Imagination Engine)
+**🔧 Tinker**
 
-### The OpenClaw Agent
+Calculator
+Clock/Timer
+Flashcards
+Fortune teller
+Dice roller
+Palette gen
+Animations
 
-KidBlocksOS runs its own dedicated OpenClaw agent — separate from any other agent on the system. This agent:
+</td>
+</tr>
+</table>
 
-- Has a single skill: `kidblocks-engine`
-- Runs a local gateway on port 8089 (localhost only)
-- Receives structured prompts from the Electron shell via Chat Completions API
-- Returns JSON with HTML + visual logic
-- Has no access to the internet, no tools, no file system — just the skill and the model
+### Content Safety
 
-The agent is configured during the first-boot setup wizard, where the parent provides an Anthropic API key.
+Three-layer protection system:
 
-## Security Model
+| Layer | Where | What |
+|-------|-------|------|
+| **Client filter** | Before AI | Regex blocks violent/sexual/inappropriate terms |
+| **Skill rules** | In the AI prompt | Explicit ban list + safe reinterpretations |
+| **Sandbox** | After generation | `iframe sandbox="allow-scripts"` — no DOM escape |
 
-### Content Safety (Three Layers)
+Safe reinterpretation examples:
 
-1. **Client-side filter** — Regex patterns block violent/sexual/inappropriate terms before they reach the AI. Blocked inputs get gentle redirects ("How about a superhero who SAVES everyone?")
+| Child says | AI generates |
+|-----------|-------------|
+| "kill the enemies" | "help the friends" |
+| "gun game" | "water balloon launcher" |
+| "scary monster" | "friendly monster who needs help" |
+| "war" | "pillow fort battle" |
 
-2. **Skill-level safety** — The AI prompt explicitly lists banned categories and provides safe reinterpretations. "Kill enemies" → "help friends". "Gun game" → "water balloon launcher".
+### Age-Adaptive
 
-3. **Sandbox execution** — Generated HTML runs in an iframe with `sandbox="allow-scripts"` only. No `allow-same-origin` — the generated app cannot access the parent DOM, IPC bridge, or any OS functionality.
-
-### Parental Controls
-
-- **PIN-protected settings** (hashed, not plaintext)
-- **Three safety levels**: Strict (templates only), Standard (AI + filtering), Creative (more freedom, 9+)
-- **Screen time limits** with break reminders
-- **Bedtime enforcement** — device locks at scheduled time
-- **Activity log** — every AI interaction logged for parent review
-- **Guardian Report** — viewable in settings behind PIN
-
-### System Hardening
-
-- Dedicated `kidblocks` user with minimal permissions
-- SystemD hardening: `ProtectSystem=strict`, `NoNewPrivileges`, `ProtectKernelTunables`
-- Gateway bound to `127.0.0.1` only
-- Random gateway auth token per device
-- Content Security Policy on Electron window
-
-## Templates (Built-in, Offline)
-
-The OS includes 13 pre-built templates that work without AI or internet:
-
-| Template | Studio | Description |
-|----------|--------|-------------|
-| Platformer | Games | Side-scrolling with emoji characters |
-| Catcher | Games | Catch falling items |
-| Maze | Games | Generated maze with touch controls |
-| Whack-a-mole | Games | Tap targets before they disappear |
-| Pong | Games | Classic paddle game |
-| Memory | Games | Card matching |
-| Drawing | Art | Freehand canvas with brushes/colors |
-| Fireworks | Art | Tap to create particle explosions |
-| Color Mixer | Art/Science | RGB sliders, learn color theory |
-| Beat Maker | Music | Step sequencer with 5 instruments |
-| Piano | Music | Playable keyboard |
-| Solar System | Science | Orbiting planets with facts |
-| Story | Stories | Branching narrative with choices |
-
-Templates are pattern-matched from the child's input. AI is only invoked when no template matches.
-
-## Contributing
-
-We welcome contributions to the Imagination Engine skill:
-
-- **New patterns** — Add studio patterns the AI can follow
-- **Better safety rules** — Improve content filtering and reinterpretation
-- **Age adaptation** — Better difficulty scaling per age group
-- **Localization** — Translate prompts and safety rules
-- **Performance** — Optimize generated HTML for Pi hardware
-
-### How to Test Changes
-
-1. Edit `skill/kidblocks-engine/SKILL.md`
-2. Paste the skill as a system prompt to any LLM
-3. Send test prompts ("make a dinosaur game for a 6 year old")
-4. Verify the output is valid JSON with working HTML
-5. Test the HTML in a browser at 1024x600 resolution
-
-## Roadmap
-
-- [ ] Guardian Channel via XMTP (parent notifications)
-- [ ] More studio patterns (coding studio, robotics studio)
-- [ ] Skill marketplace (community-contributed studios)
-- [ ] Multi-language skill variants
-- [ ] OTA updates
-- [ ] Accessibility (screen reader, high contrast, switch access)
-
-## License
-
-The Imagination Engine skill is released under **MIT License**.
-
-KidBlocksOS (the shell, templates, and image) is proprietary.
+| Ages 5-6 | Ages 7-8 | Ages 9-10 |
+|----------|----------|-----------|
+| No fail states | Gentle progression | Real challenge |
+| 1 choice per page | 2-3 choices | Complex branching |
+| Very short sentences | Paragraphs | Longer narratives |
+| Simple interactions | Multi-step | Strategy elements |
 
 ---
 
-Built with 🧱 by the KidBlocksOS team. Powered by [OpenClaw](https://openclaw.ai).
+## Quick Start
+
+### Use the Skill with OpenClaw
+
+```bash
+# Install into any OpenClaw agent
+mkdir -p ~/.openclaw/workspace/skills/kidblocks-engine
+cp skill/kidblocks-engine/SKILL.md ~/.openclaw/workspace/skills/kidblocks-engine/
+
+# Tell your agent:
+# "Read the kidblocks-engine skill. Make a dinosaur platformer for age 7."
+```
+
+### Use with Any LLM
+
+```python
+import anthropic, json
+
+with open("skill/kidblocks-engine/SKILL.md") as f:
+    skill = f.read()
+
+client = anthropic.Anthropic()
+response = client.messages.create(
+    model="claude-sonnet-4-20250514",
+    system=skill,
+    messages=[{
+        "role": "user",
+        "content": json.dumps({
+            "description": "dinosaur jumping over volcanoes",
+            "studio": "games",
+            "age": 7,
+            "safety": "standard"
+        })
+    }],
+    max_tokens=8000
+)
+
+result = json.loads(response.content[0].text)
+
+# result["html"]  → complete playable HTML5 app
+# result["logic"] → visual programming data (things + rules)
+
+with open("my-game.html", "w") as f:
+    f.write(result["html"])
+```
+
+### Paste Into Any Chat UI
+
+1. Copy the contents of [`SKILL.md`](skill/kidblocks-engine/SKILL.md)
+2. Paste as the system prompt (or first message)
+3. Ask: *"Make a piano app for a 6 year old"*
+4. Save the `html` from the JSON response as a `.html` file
+5. Open in any browser
+
+See the full [**Skill Guide**](docs/skill-guide.md) for detailed usage.
+
+---
+
+## Architecture
+
+> Full deep dive: [**docs/architecture.md**](docs/architecture.md)
+
+### System Stack
+
+```
+┌─────────────────────────────────────────────────┐
+│                 Raspberry Pi 5                   │
+├─────────────────────────────────────────────────┤
+│  Raspberry Pi OS Lite (Bookworm, arm64)          │
+│  └── kidblocks.target (custom systemd target)    │
+├─────────────────────────────────────────────────┤
+│  Cage Compositor (Wayland)                       │
+│  └── Electron (kiosk, context-isolated)          │
+│      ├── Main: IPC, config, TTS, WiFi, gateway   │
+│      └── Renderer: Studios, wizard, templates    │
+│          └── Sandboxed iframe (generated apps)   │
+├─────────────────────────────────────────────────┤
+│  OpenClaw Gateway (localhost:8089)               │
+│  └── Imagination Engine agent                    │
+│      └── kidblocks-engine skill                  │
+└─────────────────────────────────────────────────┘
+```
+
+### Security Hardening
+
+| Layer | Protection |
+|-------|-----------|
+| **Process** | Dedicated `kidblocks` user, minimal group permissions |
+| **SystemD** | `ProtectSystem=strict`, `NoNewPrivileges`, `ProtectKernelTunables` |
+| **Electron** | `contextIsolation: true`, `nodeIntegration: false`, CSP headers |
+| **Network** | Gateway on `127.0.0.1` only, random auth token, navigation blocked |
+| **Storage** | Parent PIN hashed (scrypt), filesystem permissions |
+| **Content** | 3-layer safety (regex → skill rules → iframe sandbox) |
+
+### Parental Controls
+
+- **PIN-gated settings** — hashed, not plaintext
+- **Screen time limits** with configurable daily cap and break reminders
+- **Bedtime enforcement** — device locks at scheduled time
+- **Safety levels** — Strict (no AI), Standard (AI + filtering), Creative (9+)
+- **Activity logging** — every AI interaction viewable in Guardian Report
+
+---
+
+## Hardware
+
+### Minimum
+
+- Raspberry Pi 5 (4GB RAM)
+- 7" official touchscreen (1024×600)
+- 32GB SD card
+- Power supply (5V 5A USB-C)
+
+### Recommended
+
+- Raspberry Pi 5 (8GB RAM)
+- 7" official touchscreen
+- 64GB SD card
+- 3D-printed case/stand
+- WiFi connection (for AI features)
+- Anthropic API key
+
+Templates work completely offline. AI generation requires WiFi + API key.
+
+---
+
+## Roadmap
+
+- [x] 6 creative studios with 40+ patterns
+- [x] 13 offline templates
+- [x] First-boot setup wizard (10 languages)
+- [x] Screen time, bedtime, break reminders
+- [x] Content safety (3 layers)
+- [x] Parent PIN (hashed)
+- [x] Activity logging + Guardian Report
+- [x] Voice input (Web Speech API)
+- [x] TTS output (ElevenLabs + fallback)
+- [x] KidBlocks visual programming layer
+- [ ] Guardian Channel via XMTP (parent notifications)
+- [ ] OTA updates
+- [ ] Accessibility (screen reader, high contrast, switch access)
+- [ ] Community skill marketplace
+- [ ] Multi-device sync
+- [ ] Coding studio (visual → real code transition)
+
+---
+
+## Contributing
+
+We welcome contributions to the Imagination Engine skill and documentation.
+
+**Areas we need help:**
+
+| Area | What |
+|------|------|
+| **New patterns** | Add game types, instruments, science sims |
+| **Safety rules** | Better content filtering and reinterpretation |
+| **Age adaptation** | Smarter difficulty scaling |
+| **Localization** | Translate skill prompts and safety rules |
+| **Performance** | Optimize generated HTML for constrained hardware |
+| **Testing** | Test prompts across different LLMs |
+
+### How to Contribute
+
+1. Fork this repo
+2. Edit the skill or docs
+3. Test your changes (see [Skill Guide — Testing](docs/skill-guide.md#testing))
+4. Open a PR with a clear description of what changed and why
+
+### Discussions
+
+Have ideas, questions, or want to show what you've built? Head to [**Discussions**](https://github.com/sleepycompile/kidblocksos/discussions).
+
+---
+
+## License
+
+The Imagination Engine skill and documentation are released under the **[MIT License](LICENSE)**.
+
+KidBlocksOS (the Electron shell, templates, and OS image) is proprietary.
+
+---
+
+<div align="center">
+
+Built with 🧱 on Raspberry Pi · Powered by [OpenClaw](https://openclaw.ai)
+
+**[Skill](skill/kidblocks-engine/SKILL.md)** · **[Architecture](docs/architecture.md)** · **[Guide](docs/skill-guide.md)** · **[Discussions](https://github.com/sleepycompile/kidblocksos/discussions)**
+
+</div>
