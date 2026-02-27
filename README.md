@@ -1,6 +1,6 @@
 <div align="center">
 
-# 🧱 KidBlocksOS
+<img src="docs/images/banner.png" alt="KidBlocksOS" width="100%">
 
 **a creative tablet OS for kids, powered by AI**
 
