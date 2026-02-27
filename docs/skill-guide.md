@@ -1,59 +1,54 @@
 # using the imagination engine skill
 
-the kidblocks-engine skill teaches an AI to generate complete, self-contained HTML5 apps from natural language. it's built for kids ages 5 to 10 on a touchscreen, but the output works in any browser.
+this is an [OpenClaw](https://openclaw.ai) agent skill. it teaches an OpenClaw agent to generate complete, self-contained HTML5 apps from natural language descriptions. built for kids ages 5 to 10 on a touchscreen, but the output works in any browser.
 
-## quick start
+## setup
 
-### option 1: OpenClaw
+you need OpenClaw installed. if you don't have it, see [openclaw.ai](https://openclaw.ai).
 
 ```bash
+# install the skill into your workspace
 mkdir -p ~/.openclaw/workspace/skills/kidblocks-engine
 cp skill/kidblocks-engine/SKILL.md ~/.openclaw/workspace/skills/kidblocks-engine/
-
-# then tell your agent:
-# "read the kidblocks-engine skill and make a cat maze game for age 7"
 ```
 
-### option 2: any LLM API
+once the skill is in your workspace, your agent can read it on demand.
 
-```python
-import anthropic, json
+## usage
 
-with open("skill/kidblocks-engine/SKILL.md") as f:
-    skill = f.read()
+tell your OpenClaw agent to read the skill and generate something:
 
-client = anthropic.Anthropic()
-response = client.messages.create(
-    model="claude-sonnet-4-20250514",
-    system=skill,
-    messages=[{
-        "role": "user",
-        "content": json.dumps({
-            "description": "cat maze game",
-            "studio": "games",
-            "age": 7,
-            "safety": "standard"
-        })
-    }],
-    max_tokens=8000
-)
+> "read the kidblocks-engine skill and make a cat maze game for a 7 year old"
 
-result = json.loads(response.content[0].text)
-# result["html"] is the complete app
-# result["logic"] is the visual programming data
+the agent reads the skill, follows the patterns and safety rules, and returns JSON with the generated app.
+
+### how KidBlocksOS uses it
+
+on the actual device, the Electron shell sends structured requests to the local OpenClaw gateway through the Chat Completions API:
+
+```
+POST http://127.0.0.1:8089/v1/chat/completions
+
+{
+  "model": "openclaw:main",
+  "messages": [
+    {
+      "role": "system",
+      "content": "you are the KidBlocksOS Imagination Engine. read skills/kidblocks-engine/SKILL.md..."
+    },
+    {
+      "role": "user",
+      "content": "{\"description\": \"cat maze game\", \"studio\": \"games\", \"age\": 7}"
+    }
+  ]
+}
 ```
 
-### option 3: paste it
-
-1. copy the contents of `SKILL.md`
-2. paste as the system prompt or first message in any chat UI
-3. ask: "make a piano app for a 6 year old"
-4. copy the html from the JSON output
-5. save as .html, open in a browser
+the agent picks up the skill from its workspace, generates the app, and returns the result. kids never see any of this.
 
 ## input format
 
-send a JSON object as the user message:
+when sending structured requests (like the OS does), the user message is a JSON object:
 
 ```json
 {
@@ -71,9 +66,11 @@ send a JSON object as the user message:
 | age | no | 5 through 10. defaults to 7 |
 | safety | no | strict, standard, or relaxed. defaults to standard |
 
+you can also just talk to your agent naturally ("make me a piano for a 6 year old") and it will figure it out from the skill.
+
 ## output format
 
-the skill tells the AI to return JSON only. no markdown, no explanation.
+the skill tells the agent to return JSON only. no markdown, no explanation.
 
 ```json
 {
@@ -131,7 +128,7 @@ the skill has explicit rules about what never gets generated:
 - horror, jump scares
 - gambling mechanics
 
-instead of refusing, the AI reinterprets. "gun game" becomes "water balloon launcher". "kill enemies" becomes "help friends". this keeps the creative flow going while keeping the output safe.
+instead of refusing, the agent reinterprets. "gun game" becomes "water balloon launcher". "kill enemies" becomes "help friends". keeps the creative flow going while keeping the output safe.
 
 ## performance notes
 
@@ -144,14 +141,14 @@ the skill targets constrained hardware:
 - use CSS transform and opacity for animations (GPU accelerated)
 - target 30fps
 
-these constraints mean the generated apps are lightweight and run well everywhere, not just on Pi hardware.
+these constraints mean the generated apps are lightweight and run well on the Pi.
 
 ## testing changes
 
 if you modify the skill:
 
-1. use it as a system prompt with any model
-2. test across all six studios:
+1. install it in your OpenClaw workspace
+2. ask your agent to generate across all six studios:
    - "make a penguin platformer" (games)
    - "tell me a story about a brave fox" (stories)
    - "I want a drum machine" (music)

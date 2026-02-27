@@ -13,19 +13,22 @@ Raspberry Pi
 │   └── Electron (kiosk mode)
 │       ├── main process (node.js)
 │       │   ├── IPC handlers (projects, config, TTS, wifi)
-│       │   └── gateway client (talks to OpenClaw)
+│       │   └── OpenClaw gateway client
 │       └── renderer (chromium)
 │           ├── OS UI (lock screen, home, studios, wizard, settings)
 │           ├── template engine (13 patterns)
 │           ├── content safety filter
 │           └── sandboxed iframe (where generated apps run)
 │
-└── OpenClaw gateway (localhost:8089)
-    └── imagination engine agent
-        └── kidblocks-engine skill
+└── OpenClaw (installed natively, starts on boot)
+    └── gateway (localhost:8089)
+        └── imagination engine agent
+            └── kidblocks-engine skill
 ```
 
 there's no desktop environment. the Pi boots directly into the kiosk. the only thing on screen is KidBlocksOS.
+
+OpenClaw runs as a native systemd service. it's not bolted on as an afterthought. the OS is built around it.
 
 ## boot sequence
 
@@ -39,7 +42,8 @@ power on
     -> creates a dedicated kidblocks user
     -> installs Node.js 22
     -> runs npm install for Electron
-    -> installs OpenClaw globally
+    -> installs OpenClaw globally (npm install -g openclaw)
+    -> configures OpenClaw workspace with kidblocks-engine skill
     -> drops in systemd service files
     -> sets kidblocks.target as default boot
     -> deletes itself
@@ -52,8 +56,8 @@ power on
 power on
   -> Pi OS boots to kidblocks.target
   -> kidblocks-gateway.service starts
-    -> OpenClaw agent comes online at port 8089
-    -> loads the kidblocks-engine skill
+    -> OpenClaw gateway comes online at localhost:8089
+    -> agent loads with kidblocks-engine skill in workspace
   -> kidblocks-kiosk.service starts
     -> cage compositor grabs tty7
     -> electron launches in kiosk mode
@@ -72,13 +76,15 @@ when the kid taps the lock screen and no profile exists yet, the wizard runs. tw
 5. screen time limits and bedtime
 6. content safety level
 7. parent pin (4 digit, confirmed, hashed)
-8. API key for the imagination engine
+8. AI provider API key (configures the OpenClaw agent's provider)
 
 **kid zone (4 steps):**
 9. "now hand this to your kid!"
 10. what's your name?
 11. how old are you? (5 through 10)
 12. pick your buddy (emoji avatar)
+
+the API key step writes to the OpenClaw config and starts the gateway. the parent never has to know what OpenClaw is. they just paste a key and it works.
 
 ## the creation pipeline
 
@@ -93,11 +99,11 @@ what happens when a kid says "make a penguin game where I slide on ice":
   |
   +-- template matching (engine.js matchIntent function)
   |   matched? -> generate HTML from template (instant, offline)
-  |   no match + AI healthy? -> continue
-  |   no match + AI down? -> "that one needs the AI brain! try connecting to wifi"
+  |   no match + OpenClaw healthy? -> continue
+  |   no match + OpenClaw down? -> "that one needs the AI brain! try connecting to wifi"
   |
-  +-- AI generation
-  |   electron main process POSTs to OpenClaw gateway:
+  +-- OpenClaw generation
+  |   electron main process POSTs to local OpenClaw gateway:
   |
   |   POST http://127.0.0.1:8089/v1/chat/completions
   |   {
@@ -108,7 +114,7 @@ what happens when a kid says "make a penguin game where I slide on ice":
   |     ]
   |   }
   |
-  |   agent reads SKILL.md, generates JSON with html + logic fields
+  |   agent reads SKILL.md from workspace, generates JSON with html + logic
   |
   +-- launch
       html goes into sandboxed iframe (allow-scripts only)
@@ -143,6 +149,18 @@ what happens when a kid says "make a penguin game where I slide on ice":
 └── usage-YYYY-MM-DD.json  # daily screen time tracking
 ```
 
+### OpenClaw config
+
+```
+/opt/kidblocks/openclaw-config/
+├── openclaw.json           # gateway config, provider settings
+├── workspace/
+│   ├── AGENTS.md           # agent identity and behavior
+│   └── skills/
+│       └── kidblocks-engine/
+│           └── SKILL.md    # the imagination engine skill
+```
+
 ### logs
 
 ```
@@ -154,20 +172,22 @@ what happens when a kid says "make a penguin game where I slide on ice":
 
 ## the OpenClaw agent
 
-KidBlocksOS runs its own OpenClaw instance. this is not the host system's agent. it's a separate thing with its own config, workspace, and purpose.
+KidBlocksOS runs its own OpenClaw instance. this is not the host system's agent. it's a separate installation with its own config, workspace, and purpose.
 
 | property | value |
 |----------|-------|
-| config | /opt/kidblocks/openclaw-config |
-| port | 8089 |
+| config home | /opt/kidblocks/openclaw-config |
+| gateway port | 8089 |
 | binding | 127.0.0.1 only |
 | auth | random token generated per device |
 | agent | single agent ("main") |
 | skill | kidblocks-engine |
-| model | set by parent during setup |
+| model | whatever provider the parent configured |
 | workspace | /opt/kidblocks/openclaw-config/workspace |
 
-the electron app talks to it through the standard Chat Completions API. the agent reads the skill, follows the patterns, and returns structured JSON. it has no tools, no file access, no internet. just the skill and the model.
+the Electron app talks to it through the Chat Completions API endpoint that OpenClaw exposes. the agent reads the skill from its workspace, follows the patterns, and returns structured JSON. it has no extra tools enabled, no file access beyond the workspace, no internet browsing. just the skill and the model.
+
+this is what makes the whole thing work. OpenClaw handles the agent lifecycle, the gateway, the auth, the model routing. the OS just sends prompts and gets back apps.
 
 ## security model
 
@@ -189,16 +209,14 @@ this is a children's device. the threats that matter:
 | sandbox escape | iframe sandbox="allow-scripts" (no allow-same-origin) |
 | credential theft | hashed pin (scrypt), random gateway token, file permissions |
 | physical access | kiosk blocks shortcuts, pin gates settings |
-| network attacks | gateway on localhost only, electron blocks navigation |
+| network attacks | OpenClaw gateway on localhost only, electron blocks navigation |
 
 ### electron hardening
 
 ```javascript
-// renderer can't touch node.js
 contextIsolation: true
 nodeIntegration: false
 
-// can't navigate away
 mainWindow.webContents.on('will-navigate', (e) => e.preventDefault());
 mainWindow.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
 
@@ -210,18 +228,18 @@ mainWindow.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
 ### systemd hardening
 
 ```ini
-ProtectSystem=strict          # filesystem is read-only except data dir
+ProtectSystem=strict
 ReadWritePaths=/opt/kidblocks/data
-ProtectHome=yes               # /home is invisible
-NoNewPrivileges=yes           # can't escalate
-ProtectKernelTunables=yes     # can't touch /proc/sys
-ProtectKernelModules=yes      # can't load modules
-ProtectControlGroups=yes      # can't modify cgroups
+ProtectHome=yes
+NoNewPrivileges=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
 ```
 
 ## template engine
 
-13 built-in templates handle common requests without touching the AI.
+13 built-in templates handle common requests without touching OpenClaw.
 
 the matching works through regex on the input text. "penguin sliding on ice" matches the platformer template because it detects a character (penguin emoji) plus a game-like context. the template function takes the extracted parameters and returns a complete HTML page.
 

@@ -25,14 +25,13 @@ this project is for children. everything here should reflect that.
 
 before submitting anything, test your changes:
 
-1. copy the modified SKILL.md
-2. use it as a system prompt with any model
-3. test diverse prompts across all six studios
-4. make sure output is valid JSON with html and logic fields
-5. open the HTML in a browser at 1024x600
-6. try touch interactions (Chrome DevTools device mode)
-7. check that there are no external network requests
-8. try edge cases that should be caught by safety rules
+1. install the modified SKILL.md into your OpenClaw workspace
+2. ask your agent to generate across all six studios
+3. make sure output is valid JSON with html and logic fields
+4. open the HTML in a browser at 1024x600
+5. try touch interactions (Chrome DevTools device mode)
+6. check that there are no external network requests
+7. try edge cases that should be caught by safety rules
 
 ## submitting
 

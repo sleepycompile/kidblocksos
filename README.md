@@ -4,7 +4,7 @@
 
 **a creative tablet OS for kids, powered by AI**
 
-[![Beta](https://img.shields.io/badge/status-beta-orange?style=flat-square)](https://github.com/sleepycompile/kidblocksos)
+[![Status](https://img.shields.io/badge/status-proof%20of%20concept-orange?style=flat-square)](https://github.com/sleepycompile/kidblocksos)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue?style=flat-square)](LICENSE)
 [![Raspberry Pi](https://img.shields.io/badge/runs%20on-Raspberry%20Pi-c51a4a?style=flat-square&logo=raspberrypi&logoColor=white)](https://www.raspberrypi.com/)
 [![OpenClaw](https://img.shields.io/badge/powered%20by-OpenClaw-8B5CF6?style=flat-square)](https://openclaw.ai)
@@ -28,22 +28,22 @@ a kid opens a studio, says what they want to build ("a penguin game where I jump
 
 no app store. no ads. no tracking. no internet required for the core experience.
 
-a Raspberry Pi is the brain. [OpenClaw](https://openclaw.ai) is the agent framework running the AI generation. the rest is a locked down kiosk that boots straight into the creative environment.
+a Raspberry Pi is the brain. [OpenClaw](https://openclaw.ai) is the agent framework that runs natively on the device, handling all AI generation through its local gateway. the OS ships with OpenClaw installed and a dedicated agent configured out of the box.
 
 ## what's in this repo
 
-this is a semi-open-source proof of concept. we're releasing the brain (the AI skill that powers generation) and full documentation on how everything fits together.
+this is a proof of concept. we're releasing the brain (the OpenClaw skill that powers generation) and full documentation on how everything fits together.
 
 | included | open source |
 |----------|:-----------:|
-| **Imagination Engine Skill** | ✅ |
+| **Imagination Engine Skill** (OpenClaw) | ✅ |
 | **Architecture docs** | ✅ |
 | **Skill usage guide** | ✅ |
 | OS shell and UI | no |
 | pre-built image | no |
 | template engine | no |
 
-the skill is the interesting part. it's the full instruction set that teaches an AI model to generate kid-safe interactive HTML5 apps from natural language. you can use it with OpenClaw, with the Anthropic API directly, or just paste it into any chat interface.
+the skill is the interesting part. it's the full instruction set that teaches an OpenClaw agent to generate kid-safe interactive HTML5 apps from natural language. install it into any OpenClaw workspace and your agent knows how to build for kids.
 
 we open sourced it because parents and educators should be able to read exactly what the AI is being told to do. and because the community can make it better.
 
@@ -51,7 +51,7 @@ we open sourced it because parents and educators should be able to read exactly 
 
 ## the imagination engine
 
-the skill lives at [`skill/kidblocks-engine/SKILL.md`](skill/kidblocks-engine/SKILL.md). it covers six creative studios with 40+ generation patterns.
+the skill lives at [`skill/kidblocks-engine/SKILL.md`](skill/kidblocks-engine/SKILL.md). it's an OpenClaw agent skill that covers six creative studios with 40+ generation patterns.
 
 <table>
 <tr>
@@ -140,7 +140,7 @@ three layers. not one.
 | layer | where | what it does |
 |-------|-------|-------------|
 | **client filter** | before AI | regex catches violent, sexual, and inappropriate terms |
-| **skill rules** | inside the AI prompt | explicit ban list plus safe reinterpretations |
+| **skill rules** | inside the OpenClaw agent prompt | explicit ban list plus safe reinterpretations |
 | **sandbox** | after generation | iframe with `allow-scripts` only, no DOM escape possible |
 
 the reinterpretation part matters. kids say stuff like "kill the enemies" because that's what they've seen in games. the AI doesn't refuse, it redirects:
@@ -165,11 +165,12 @@ the skill adjusts output based on the child's age.
 
 ---
 
-## quick start
+## using the skill
 
-### with OpenClaw
+this is an OpenClaw skill. you need [OpenClaw](https://openclaw.ai) installed.
 
 ```bash
+# install the skill into your OpenClaw workspace
 mkdir -p ~/.openclaw/workspace/skills/kidblocks-engine
 cp skill/kidblocks-engine/SKILL.md ~/.openclaw/workspace/skills/kidblocks-engine/
 
@@ -177,45 +178,9 @@ cp skill/kidblocks-engine/SKILL.md ~/.openclaw/workspace/skills/kidblocks-engine
 # "read the kidblocks-engine skill and make a dinosaur platformer for age 7"
 ```
 
-### with the Anthropic API
+the agent reads the skill, follows the patterns and safety rules, and returns a JSON object with a complete HTML5 app and visual programming data.
 
-```python
-import anthropic, json
-
-with open("skill/kidblocks-engine/SKILL.md") as f:
-    skill = f.read()
-
-client = anthropic.Anthropic()
-response = client.messages.create(
-    model="claude-sonnet-4-20250514",
-    system=skill,
-    messages=[{
-        "role": "user",
-        "content": json.dumps({
-            "description": "dinosaur jumping over volcanoes",
-            "studio": "games",
-            "age": 7,
-            "safety": "standard"
-        })
-    }],
-    max_tokens=8000
-)
-
-result = json.loads(response.content[0].text)
-# result["html"]  -> complete playable HTML5 app
-# result["logic"] -> visual programming data
-
-with open("my-game.html", "w") as f:
-    f.write(result["html"])
-```
-
-### paste it into anything
-
-1. copy the contents of [`SKILL.md`](skill/kidblocks-engine/SKILL.md)
-2. paste as the system prompt
-3. ask for something: "make a piano app for a 6 year old"
-4. save the html from the JSON response as a `.html` file
-5. open it in a browser
+on KidBlocksOS itself, the Electron shell talks to the local OpenClaw gateway through the Chat Completions API. the agent is preconfigured with the skill during first boot. kids never see any of this, they just describe what they want and it appears.
 
 full details in the [skill guide](docs/skill-guide.md).
 
@@ -240,7 +205,7 @@ template match? ----yes----> instant build (offline, no AI needed)
 OpenClaw agent reads kidblocks-engine skill
       |
       v
-AI generates complete HTML5 app
+agent generates complete HTML5 app
       |
       v
 runs in sandboxed iframe (allow-scripts only)
@@ -249,7 +214,7 @@ runs in sandboxed iframe (allow-scripts only)
 kid plays their creation
 ```
 
-a Raspberry Pi runs the whole thing. boots straight into a locked down kiosk. the OpenClaw agent handles AI generation through a local gateway that never touches the open internet. 13 built-in templates cover the common cases without needing AI at all.
+a Raspberry Pi runs the whole thing. OpenClaw is installed natively and starts on boot as a systemd service. the gateway runs on localhost, never touches the open internet. 13 built-in templates cover the common cases without needing the agent at all.
 
 ### parental controls
 
@@ -266,7 +231,7 @@ a Raspberry Pi runs the whole thing. boots straight into a locked down kiosk. th
 | process isolation | dedicated user, minimal permissions |
 | systemd hardening | ProtectSystem, NoNewPrivileges, ProtectKernelTunables |
 | electron | context isolation, no node integration, CSP headers |
-| network | gateway on localhost only, random auth token |
+| network | OpenClaw gateway on localhost only, random auth token |
 | storage | parent pin hashed with scrypt, filesystem permissions |
 | generated content | sandboxed iframe, three layer content filter |
 
@@ -274,10 +239,11 @@ a Raspberry Pi runs the whole thing. boots straight into a locked down kiosk. th
 
 ## status
 
-beta. this is a working proof of concept, not a finished product.
+proof of concept. actively being built.
 
 - [x] six creative studios with 40+ patterns
 - [x] 13 offline templates
+- [x] OpenClaw agent with dedicated skill
 - [x] first boot setup wizard (10 languages)
 - [x] screen time, bedtime, break reminders
 - [x] content safety (three layers)
@@ -302,7 +268,7 @@ we need help with:
 - **safety rules** (better filtering, more reinterpretations)
 - **age adaptation** (smarter difficulty scaling)
 - **localization** (translating prompts and safety rules)
-- **testing** across different models
+- **testing** across different OpenClaw configurations
 
 see [CONTRIBUTING.md](CONTRIBUTING.md) for details.
 
@@ -318,7 +284,7 @@ the OS shell, templates, and image are proprietary.
 
 <div align="center">
 
-built with 🧱 on Raspberry Pi · powered by [OpenClaw](https://openclaw.ai)
+built with 🧱 on Raspberry Pi · runs on [OpenClaw](https://openclaw.ai)
 
 **[skill](skill/kidblocks-engine/SKILL.md)** · **[architecture](docs/architecture.md)** · **[guide](docs/skill-guide.md)** · **[discussions](https://github.com/sleepycompile/kidblocksos/discussions)**
 
