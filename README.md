@@ -12,7 +12,7 @@
 
 ---
 
-[**Skill**](skill/kidblocks-engine/SKILL.md) · [**Architecture**](docs/architecture.md) · [**Skill Guide**](docs/skill-guide.md) · [**Discussions**](https://github.com/sleepycompile/kidblocksos/discussions)
+[**Skill**](skill/kidblocks-engine/SKILL.md) · [**Architecture**](docs/architecture.md) · [**Marketplace**](docs/marketplace.md) · [**Skill Guide**](docs/skill-guide.md) · [**Discussions**](https://github.com/sleepycompile/kidblocksos/discussions)
 
 </div>
 
@@ -252,11 +252,49 @@ proof of concept. actively being built.
 - [x] voice input
 - [x] TTS output
 - [x] visual programming layer
+- [x] peer-to-peer marketplace over XMTP
+- [x] USDC payments on Base (kids see "coins")
+- [x] device wallet (self-custody, created during setup)
+- [x] parental spend limits and listing price caps
 - [ ] guardian channel via XMTP (parent notifications)
 - [ ] OTA updates
 - [ ] accessibility
-- [ ] community skill marketplace
 - [ ] multi-device sync
+
+---
+
+## marketplace
+
+kids build apps. kids sell apps. the marketplace is a peer-to-peer app store where every developer is under ten and every transaction settles on chain.
+
+### how it works
+
+the entire marketplace runs on one XMTP group. every KidBlocksOS device joins the group during setup. listings, purchases, invoices, and app deliveries are JSON messages in the group. there are no servers, no APIs, no databases. the XMTP group is the marketplace.
+
+payments are direct USDC transfers on Base. no smart contracts. when a kid buys an app, their device sends USDC to the seller's device wallet. the seller verifies the transaction on chain and delivers the HTML5 app file over XMTP.
+
+### what kids see vs what is happening
+
+kids see gold coins in a piggy bank. they price apps in coins. they buy and sell in coins. under the hood, 100 coins equals 1 USDC. the conversion happens in the UI. all on-chain values are real USDC on Base.
+
+kids never see wallet addresses, transaction hashes, gas fees, or dollar amounts. parents configure real USDC spend limits in the settings screen.
+
+### device onboarding
+
+during setup, the OS generates a wallet on the device. the private key never leaves the device. the device sends a DM to the marketplace master wallet. a watcher daemon adds the device to the XMTP group automatically. no accounts, no sign-up, no email. one DM and the device is a marketplace member.
+
+### purchase flow
+
+1. buyer sends a payment request to the group
+2. seller responds with an invoice
+3. buyer sends USDC directly to seller (one on-chain transaction)
+4. buyer broadcasts the transaction hash
+5. seller verifies on chain and delivers the app over XMTP
+6. seller's device sends a platform fee (one on-chain transaction)
+
+six messages. two on-chain transactions. no middleman.
+
+full documentation: [**marketplace**](docs/marketplace.md) / [**payment layer**](docs/payment-layer.md) / [**XMTP messaging**](docs/xmtp-messaging.md)
 
 ---
 
@@ -286,6 +324,6 @@ the OS shell, templates, and image are proprietary.
 
 built with 🧱 on Raspberry Pi · runs on [OpenClaw](https://openclaw.ai)
 
-**[skill](skill/kidblocks-engine/SKILL.md)** · **[architecture](docs/architecture.md)** · **[guide](docs/skill-guide.md)** · **[discussions](https://github.com/sleepycompile/kidblocksos/discussions)**
+**[skill](skill/kidblocks-engine/SKILL.md)** · **[architecture](docs/architecture.md)** · **[marketplace](docs/marketplace.md)** · **[guide](docs/skill-guide.md)** · **[discussions](https://github.com/sleepycompile/kidblocksos/discussions)**
 
 </div>
