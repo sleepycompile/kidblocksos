@@ -67,7 +67,7 @@ The watcher solves this by reading the current catalog from the group, packaging
 The watcher is a daemon that runs on the marketplace maintainer's device (a Raspberry Pi). It uses the master wallet to manage the XMTP marketplace group.
 
 ```
-/home/oryx/kidblocks-build/os/services/marketplace-watcher.mjs
+os/services/marketplace-watcher.mjs
 ```
 
 It does two things:
